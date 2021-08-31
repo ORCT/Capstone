@@ -97,7 +97,7 @@ def conv_img_to_delta(image):
         
     blur_img = gaussian_blur(gray_img, 3)
     
-    canny_img = canny(blur_img, 70, 210)
+    canny_img = canny(blur_img, 200, 350)
 
     vertices = np.array([[(0,height),(0, height/2), (width, height/2), (width,height)]], dtype=np.int32) # half of image size divided by center horizontal line
     ROI_img = region_of_interest(canny_img, vertices) # ROI
