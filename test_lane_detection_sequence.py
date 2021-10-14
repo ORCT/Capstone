@@ -55,6 +55,9 @@ def draw_fit_line(img, lines, color=[255, 0, 0], thickness=10): # draw represent
 def weighted_img(img, initial_img, α=1, β=1., λ=0.): # origin & hough overlap
     return cv2.addWeighted(initial_img, α, img, β, λ)
 
+def nothing():
+    pass
+
 image = cv2.imread('lane sample/sample5.jpg') # import image, be careful the path!!
 #cv2.imshow('origin',image)
 #cv2.waitKey(0)
