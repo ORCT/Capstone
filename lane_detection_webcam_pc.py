@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 #start = time.time()  # start time
 
-def nothing():
+def nothing(x):
     pass
 
 def grayscale(img):
@@ -40,7 +40,7 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=2): # draw line
         for x1,y1,x2,y2 in line:
             cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
-def hough_lines(img, rho=1, theta=1*np.pi/180, threshold=30, min_line_len=10, max_line_gap=20):
+def hough_lines(img, rho=1, theta=np.pi/180, threshold=30, min_line_len=10, max_line_gap=20):
     lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
     line_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
     draw_lines(line_img, lines)
@@ -94,13 +94,13 @@ def conv_img_to_delta(image,low,high):
     gray_img = grayscale(image)
         
     blur_img = gaussian_blur(gray_img)
-    
+
     canny_img = canny(blur_img,low,high)
 
     vertices = np.array([[(0,height),(0, height/2), (width, height/2), (width,height)]], dtype=np.int32) # half of image size divided by center horizontal line
     ROI_img = region_of_interest(canny_img, vertices) # ROI
 
-    line_arr = hough_lines(ROI_img) # hough
+    line_arr, line_img = hough_lines(ROI_img) # hough
     line_arr = np.squeeze(line_arr)
         
     # find slope
@@ -156,14 +156,14 @@ def main():
     cv2.namedWindow('Lane Detection')
     cv2.createTrackbar('threshold1', 'Lane Detection', 0, 1000, nothing)
     cv2.createTrackbar('threshold2', 'Lane Detection', 0, 1000, nothing)
-    cv2.setTrackbarPos('threshold1', 'Lane Detection', 500)
-    cv2.setTrackbarPos('threshold2', 'Lane Detection', 300)
+    cv2.setTrackbarPos('threshold1', 'Lane Detection', 300)
+    cv2.setTrackbarPos('threshold2', 'Lane Detection', 500)
     tmp=deque([])
     while cv2.waitKey(33) != ord('q'):
         try:
             ret, frame = capture.read()
-            low = cv2,cv2.getTrackbarPos('threshold1','Lane Detection')
-            high = cv2,cv2.getTrackbarPos('threshold2','Lane Detection')
+            low = cv2.getTrackbarPos('threshold1','Lane Detection')
+            high = cv2.getTrackbarPos('threshold2','Lane Detection')
             #hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
             #lower_blue = np.array([0,0,0])
             #upper_blue = np.array([360,100,20])
@@ -175,6 +175,7 @@ def main():
                 tmp.popleft()
             delta = int(sum(tmp)/len(tmp))
             if len(tmp)>=10:
+                print('steer value', delta)
                 serial_deque = deque([])
                 if delta < 0:
                     delta = abs(delta)
@@ -188,7 +189,6 @@ def main():
                     serial_deque = deque(['+']+str_delta+['`'])
                 for i in serial_deque:
                     interact_ser(i,ard)
-                print('steer value', delta)
             cv2.imshow("Lane Detection", img)
             cv2.imshow('ROI',ROI_img)
             #cv2.imshow('hsv',res)
