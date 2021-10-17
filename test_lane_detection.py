@@ -122,6 +122,22 @@ def apply_hsv_filter(frame):
     res = cv2.bitwise_and(frame,frame, mask=mask)
     return res
 
+def create_image_multiple(h,w,d,hcount,wcount):
+    image = np.zeros((h*hcount, w*wcount, d), np.uint8)
+    color = tuple(reversed((0,0,0)))
+    image[:] = color
+    return image
+
+def show_multi_image(dst, src, h, w, d, col, row):
+    #3 color
+    if d == 3:
+        dst[(col*h):(col*h)+h, (row*w):(row*w)+w] = src[0:h, 0:w]
+    #1 color
+    elif d == 1:
+        dst[(col*h):(col*h)+h, (row*w):(row*w)+w, 0] = src[0:h, 0:w]
+        dst[(col*h):(col*h)+h, (row*w):(row*w)+w, 1] = src[0:h, 0:w]
+        dst[(col*h):(col*h)+h, (row*w):(row*w)+w, 2] = src[0:h, 0:w]
+
 def conv_img_to_delta(image,low,high):
     height, width = image.shape[:2]# shape is numpy array
 
@@ -191,13 +207,19 @@ def main():
     while cv2.waitKey(33) != ord('q'):
         try:
             ret, frame = capture.read()
+            height = frame.shape[0]
+            width = frame.shape[1]
+            depth = frame.shape[2]
             low = cv2.getTrackbarPos('threshold1','Lane Detection')
             high = cv2.getTrackbarPos('threshold2','Lane Detection')
             res = apply_hsv_filter(frame)
             img,ROI_img,delta = conv_img_to_delta(res,low,high)
             steering_process(delta_filter,delta,ard)
-            cv2.imshow("Lane Detection", img)
-            cv2.imshow('ROI',ROI_img)
+            dst_image = create_image_multiple(height, width, depth, 1, 2)
+            show_multi_image(dst_image, ROI_img, height, width, depth, 0, 0)
+            show_multi_image(dst_image, img, height, width, depth, 0, 0)
+            cv2.imshow("Lane Detection", dst_image)
+            #cv2.imshow('ROI',ROI_img)
             #cv2.imshow('hsv',res)
             #cv2.imshow('origin',frame)
         except:
