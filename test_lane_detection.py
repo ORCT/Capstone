@@ -193,10 +193,10 @@ def conv_img_to_delta(image,low,high):
     return result,ROI_img,int(row_delta)
 
 def main():
-    capture = cv2.VideoCapture(1)#If your pc has own camera already, additional webcam number will be 1, else 0.
+    capture = cv2.VideoCapture(0)#If your pc has own camera already, additional webcam number will be 1, else 0.
     capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    port = 'COM15'
+    port = 'COM7'
     ard = serial.Serial(port,9600)
     cv2.namedWindow('Lane Detection')
     cv2.createTrackbar('threshold1', 'Lane Detection', 0, 1000, nothing)
@@ -212,14 +212,15 @@ def main():
             depth = frame.shape[2]
             low = cv2.getTrackbarPos('threshold1','Lane Detection')
             high = cv2.getTrackbarPos('threshold2','Lane Detection')
-            res = apply_hsv_filter(frame)
-            img,ROI_img,delta = conv_img_to_delta(res,low,high)
-            steering_process(delta_filter,delta,ard)
+            #res = apply_hsv_filter(frame)
+            img,ROI_img,delta = conv_img_to_delta(frame,low,high)
+            #steering_process(delta_filter,delta,ard)
             dst_image = create_image_multiple(height, width, depth, 1, 2)
-            show_multi_image(dst_image, ROI_img, height, width, depth, 0, 0)
-            show_multi_image(dst_image, img, height, width, depth, 0, 0)
+            show_multi_image(dst_image, ROI_img, height, width, 1, 0, 0)#roi image is 1 channel so you should change the depth to 1.
+            show_multi_image(dst_image, img, height, width, depth, 0, 1)#
             cv2.imshow("Lane Detection", dst_image)
             #cv2.imshow('ROI',ROI_img)
+            #cv2.imshow('Lane Detection',img)
             #cv2.imshow('hsv',res)
             #cv2.imshow('origin',frame)
         except:
