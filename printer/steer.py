@@ -1,16 +1,7 @@
-import serial
-import time
-from collections import deque
 import cv2
 import numpy as np
-import printer
-import tkinter
-import warnings
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+#from picamera import PiCamera
 #start = time.time()  # start time
-
-def nothing(x):
-    pass
 
 def grayscale(img):
     return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -18,7 +9,7 @@ def grayscale(img):
 def gaussian_blur(img, kernel_size=3):
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
 
-def canny(img, low_threshold, high_threshold):
+def canny(img, low_threshold=500, high_threshold=300):
     return cv2.Canny(img, low_threshold, high_threshold)
 
 def region_of_interest(img, vertices, color3=(255,255,255), color1=255): # ROI
@@ -42,12 +33,12 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=2): # draw line
         for x1,y1,x2,y2 in line:
             cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
-def hough_lines(img, rho=1, theta=np.pi/180, threshold=30, min_line_len=10, max_line_gap=20):
+def hough_lines(img, rho=1, theta=1*np.pi/180, threshold=30, min_line_len=10, max_line_gap=20):
     lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
     line_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
     draw_lines(line_img, lines)
 
-    return lines, line_img
+    return lines
 
 def weighted_img(img, initial_img, α=1, β=1., λ=0.): # origin & hough overlap
     return cv2.addWeighted(initial_img, α, img, β, λ)
@@ -90,64 +81,19 @@ def get_steering_value(vp, height, width, steer_max=50, offset=0):#bigger height
     delta = 0.5*(np.sign(vpx)+1) * (vpx*steer_max) * (2**vpy) -0.5*(np.sign(vpx)-1) * (vpx*steer_max) * (2**vpy) + offset
     return delta
 
-def steering_process(delta_filter,delta,ard):
-    delta_filter.append(delta)
-    if len(delta_filter)>10:
-        delta_filter.popleft()
-    delta = int(sum(delta_filter)/len(delta_filter))
-    if len(delta_filter)>=10:
-        print('steer value', delta)
-        serial_deque = deque([])
-        if delta < 0:
-            delta = abs(delta)
-            str_delta = list(str(delta))
-            serial_deque = deque(['-']+str_delta+['`'])
-        elif delta == 0:
-            str_delta = list(str(delta))
-            serial_deque = deque(['f']+str_delta+['`'])
-        else:
-            str_delta = list(str(delta))
-            serial_deque = deque(['+']+str_delta+['`'])
-        for i in serial_deque:
-            printer.interact_ser(i,ard)
-
-def apply_hsv_filter(frame):
-    hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
-    lower_blue = np.array([0,0,0])
-    upper_blue = np.array([360,100,20])
-    mask = cv2.inRange(hsv,lower_blue,upper_blue)
-    res = cv2.bitwise_and(frame,frame, mask=mask)
-    return res
-
-def create_image_multiple(h,w,d,hcount,wcount):
-    image = np.zeros((h*hcount, w*wcount, d), np.uint8)
-    color = tuple(reversed((0,0,0)))
-    image[:] = color
-    return image
-
-def show_multi_image(dst, src, h, w, d, col, row):
-    #3 color
-    if d == 3:
-        dst[(col*h):(col*h)+h, (row*w):(row*w)+w] = src[0:h, 0:w]
-    #1 color
-    elif d == 1:
-        dst[(col*h):(col*h)+h, (row*w):(row*w)+w, 0] = src[0:h, 0:w]
-        dst[(col*h):(col*h)+h, (row*w):(row*w)+w, 1] = src[0:h, 0:w]
-        dst[(col*h):(col*h)+h, (row*w):(row*w)+w, 2] = src[0:h, 0:w]
-
-def conv_img_to_delta(image,low,high):
+def conv_img_to_delta(image):
     height, width = image.shape[:2]# shape is numpy array
 
     gray_img = grayscale(image)
         
     blur_img = gaussian_blur(gray_img)
-
-    canny_img = canny(blur_img,low,high)
+    
+    canny_img = canny(blur_img)
 
     vertices = np.array([[(0,height),(0, height/2), (width, height/2), (width,height)]], dtype=np.int32) # half of image size divided by center horizontal line
     ROI_img = region_of_interest(canny_img, vertices) # ROI
 
-    line_arr, line_img = hough_lines(ROI_img) # hough
+    line_arr = hough_lines(ROI_img) # hough
     line_arr = np.squeeze(line_arr)
         
     # find slope
@@ -182,44 +128,15 @@ def conv_img_to_delta(image,low,high):
     #weight img
     temp = weighted_img(temp,temp1)
     result = weighted_img(image,temp)
-    #result = weighted_img(image,hough_img)
-    #result1 = weighted_img(temp,ROI_img)
+    result1 = weighted_img(ROI_img, temp)
 
     # get steering value(delta)
     row_delta = get_steering_value(vp,image.shape[0],image.shape[1])
-    return result,ROI_img,int(row_delta)
+    return result,result1,int(row_delta)
 
-def main(ard,port):
-    capture = cv2.VideoCapture(0)#If your pc has own camera already, additional webcam number will be 1, else 0.
-    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cv2.namedWindow('Lane Detection')
-    cv2.createTrackbar('threshold1', 'Lane Detection', 0, 1000, nothing)
-    cv2.createTrackbar('threshold2', 'Lane Detection', 0, 1000, nothing)
-    cv2.setTrackbarPos('threshold1', 'Lane Detection', 300)
-    cv2.setTrackbarPos('threshold2', 'Lane Detection', 500)
-    delta_filter=deque([])
-    while cv2.waitKey(33) != ord('q'):
-        try:
-            ret, frame = capture.read()
-            height = frame.shape[0]
-            width = frame.shape[1]
-            depth = frame.shape[2]
-            low = cv2.getTrackbarPos('threshold1','Lane Detection')
-            high = cv2.getTrackbarPos('threshold2','Lane Detection')
-            #res = apply_hsv_filter(frame)
-            img,ROI_img,delta = conv_img_to_delta(frame,low,high)
-            #steering_process(delta_filter,delta,ard)
-            dst_image = create_image_multiple(height, width, depth, 1, 2)
-            show_multi_image(dst_image, ROI_img, height, width, 1, 0, 0)#roi image is 1 channel so you should change the depth to 1.
-            show_multi_image(dst_image, img, height, width, depth, 0, 1)#
-            cv2.imshow("Lane Detection", dst_image)
-        except:
-            continue
-    capture.release()
-    cv2.destroyAllWindows()
+def capture_delta(_capture):
+    _, _frame = _capture.read()
+    _, _, ans = conv_img_to_delta(_frame)
+    return ans
 
-if __name__ == '__main__':
-    port = 'COM7'
-    ard = serial.Serial(port,9600)
-    main(ard, port)
+
