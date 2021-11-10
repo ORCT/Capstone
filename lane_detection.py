@@ -198,8 +198,8 @@ def main(ard, port, camera_num):
     file.close()
     
     capture = cv2.VideoCapture(camera_num)#If your pc has own camera already, additional webcam number will be 1, else 0.
-    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
     cv2.namedWindow('Lane Detection')
     cv2.createTrackbar('threshold1', 'Lane Detection', 0, 1000, nothing)
     cv2.createTrackbar('threshold2', 'Lane Detection', 0, 1000, nothing)
@@ -233,8 +233,8 @@ def main(ard, port, camera_num):
     file.close()
     
     capture = cv2.VideoCapture(camera_num)#If your pc has own camera already, additional webcam number will be 1, else 0.
-    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
     cv2.namedWindow('Lane Detection')
     delta_filter=deque([])
     
