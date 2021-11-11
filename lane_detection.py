@@ -175,11 +175,11 @@ def conv_img_to_delta(image,low,high):
 
     # draw vp circle
     vp = get_vanishing_point(left_fit_line, right_fit_line)
-    temp1 = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
-    draw_vp_circle(temp1,vp)
+    #temp1 = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
+    #draw_vp_circle(temp1,vp)
 
     #weight img
-    temp = weighted_img(temp,temp1)
+    #temp = weighted_img(temp,temp1)
     result = weighted_img(image,temp)
     #result = weighted_img(image,hough_img)
     #result1 = weighted_img(temp,ROI_img)
@@ -258,6 +258,6 @@ def main(ard, port, camera_num):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    port = 'COM12'
+    port = 'COM7'
     ard = serial.Serial(port,9600)
-    main(ard, port, 1)
+    main(ard, port, 0)
