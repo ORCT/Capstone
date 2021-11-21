@@ -299,3 +299,11 @@ void go_forward(int motor_dir_pin1, int motor_dir_pin2, int motor_step_pin1, int
         delayMicroseconds(MOTOR_DELAY * 5);
     }
 }
+void steering(int motor_dir_pin1, int motor_dir_pin2, int motor_step_pin1, int motor_step_pin2, int motor_step)
+{
+    digitalWrite(motor_dir_pin1, HIGH);
+    digitalWrite(motor_dir_pin2, LOW);
+    //지금 내가 고민인거는 같은 스텝으로 조지는 건데 for 문은 다 돌아야만 밑에거를 실행시키잖아
+    //그러면 한 반복문에서 실행시키려면 스텝은 동일해도 각각이 딜레이만 달라야 하는데
+    //아니면 서로 다른 반복문으로 구동을 하는데 동시에 돌아야 함
+}
