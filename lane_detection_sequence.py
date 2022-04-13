@@ -18,12 +18,21 @@ def roi(img,h,w):
     return roi_img
 
 def hough(img,h,w,min_line_len):
-    lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=30, minLineLength=min_line_len, maxLineGap=30)
-    line_img = np.zeros((h, w, 3), dtype=np.uint8)
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(line_img, (x1, y1), (x2, y2), color=[255,0,0], thickness=2)
-    return line_img
+    lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=30, minLineLength=min_line_len, maxLineGap=30)#return = [[x1,y1,x2,y2],[...],...]
+    lanes, slopes = restrict_deg(lines)
+    lane_img = np.zeros((h, w, 3), dtype=np.uint8)
+    for x1,y1,x2,y2 in lanes:
+        cv2.line(lane_img, (x1, y1), (x2, y2), color=[255,0,0], thickness=2)
+    return lane_img
+
+def restrict_deg(lines):
+    lines = np.squeeze(lines)#one time ok
+    slope_deg = np.rad2deg(np.arctan2(lines[:,1]-lines[:,3],lines[:,0]-lines[:,2]))
+    lines = lines[np.abs(slope_deg)<160]#cannot use and & index true catch
+    slope_deg = slope_deg[np.abs(slope_deg)<160]
+    lines = lines[np.abs(slope_deg)>100]
+    slope_deg = slope_deg[np.abs(slope_deg)>100]#where can i use slope
+    return lines, slope_deg
 
 def lane_detection(min_line_len):
     origin_img = cv2.imread('./slope_test.jpg')
@@ -40,9 +49,9 @@ def nothing(pos):
 
 if __name__ == '__main__':
     cv2.namedWindow(winname='Lane Detection')
-    cv2.createTrackbar('minLine', 'Lane Detection', 0, 200, nothing)#don't write keword
+    cv2.createTrackbar('houghMinLine', 'Lane Detection', 0, 200, nothing)#don't write keyword
     while cv2.waitKey(1) != ord('q'):
-        min_line_len = cv2.getTrackbarPos(trackbarname='minLine', winname='Lane Detection')
+        min_line_len = cv2.getTrackbarPos(trackbarname='houghMinLine', winname='Lane Detection')
         hough_img = lane_detection(min_line_len)
         cv2.imshow('Lane Detection',hough_img)
 

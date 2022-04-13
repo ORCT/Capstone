@@ -154,7 +154,7 @@ def conv_img_to_delta(image,low,high):
 
     # restrict the horizon
     line_arr = line_arr[np.abs(slope_degree)<160]
-    slope_degree = slope_degree[np.abs(slope_degree)<160]
+    slope_degree = slope_degree[np.abs(slope_degree)<160]#true만 남기는 코드
 
     # restrict the vertical
     line_arr = line_arr[np.abs(slope_degree)>95]
