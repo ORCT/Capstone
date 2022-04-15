@@ -46,10 +46,6 @@ def hough(img,h,w,min_line_len,min_slope,max_slope):
     #cv2.line(lane_img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=2)
     return l_lane, r_lane, l_slope, r_slope
 
-def get_vp():
-    
-    return
-
 def lane_detection(min_line_len,min_slope,max_slope):
     origin_img = cv2.imread('./left_right.jpg')
     h,w = origin_img.shape[:2]
@@ -58,11 +54,9 @@ def lane_detection(min_line_len,min_slope,max_slope):
     canny_img = canny(blur_img, 50, 200)
     roi_img = roi(canny_img,h,w)
     l_lane,r_lane,l_slope,r_slope = hough(roi_img,h,w,min_line_len,min_slope,max_slope)
-    #vp = get_vp(l_slope,r_slope)
-    steer_value = l_slope+r_slope#각도를 일반적으로 우리가 90도라고 생각하는데서 재는거 같아
+    steer_value = l_slope+r_slope#maybe 0 deg is on 12
     cv2.line(origin_img, (int(l_lane[0]), int(l_lane[1])), (int(l_lane[2]), int(l_lane[3])), color=[0,0,255], thickness=5)
     cv2.line(origin_img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=5)
-    #print(l_slope,r_slope,steer_value)
     return origin_img, steer_value
 
 def nothing(pos):
