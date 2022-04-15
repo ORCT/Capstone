@@ -27,23 +27,28 @@ def restrict_deg(lines,min_slope,max_slope):
 
 def separate_line(lines,slope_deg):
     l_lines, r_lines = lines[(slope_deg>0),:], lines[(slope_deg<0),:]
+    l_slopes, r_slopes = slope_deg[(slope_deg>0)], slope_deg[(slope_deg<0)]
     l_line = [sum(l_lines[:,0])/len(l_lines),sum(l_lines[:,1])/len(l_lines),sum(l_lines[:,2])/len(l_lines),sum(l_lines[:,3])/len(l_lines)]
     r_line = [sum(r_lines[:,0])/len(r_lines),sum(r_lines[:,1])/len(r_lines),sum(r_lines[:,2])/len(r_lines),sum(r_lines[:,3])/len(r_lines)]
-    return l_line, r_line
+    l_slope = int(sum(l_slopes)/len(l_slopes))
+    r_slope = int(sum(r_slopes)/len(r_slopes))
+    return l_line, r_line, l_slope, r_slope
 
 def hough(img,h,w,min_line_len,min_slope,max_slope):
     lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=30, minLineLength=min_line_len, maxLineGap=30)#return = [[x1,y1,x2,y2],[...],...]
     lines = np.squeeze(lines)#one time ok
     lanes, slopes = restrict_deg(lines,min_slope,max_slope)
-    l_lane, r_lane = separate_line(lanes,slopes)
+    l_lane, r_lane, l_slope, r_slope = separate_line(lanes,slopes)
     #lane_img = np.zeros((h, w, 3), dtype=np.uint8)
     #for x1,y1,x2,y2 in l_lanes:
     #cv2.line(lane_img, (int(l_lane[0]), int(l_lane[1])), (int(l_lane[2]), int(l_lane[3])), color=[0,0,255], thickness=2)
     #for x1,y1,x2,y2 in r_lanes:
     #cv2.line(lane_img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=2)
-    return l_lane,r_lane
+    return l_lane, r_lane, l_slope, r_slope
 
-
+def get_vp():
+    
+    return
 
 def lane_detection(min_line_len,min_slope,max_slope):
     origin_img = cv2.imread('./left_right.jpg')
@@ -52,10 +57,13 @@ def lane_detection(min_line_len,min_slope,max_slope):
     blur_img = gaussian_blur(gray_img, 5)
     canny_img = canny(blur_img, 50, 200)
     roi_img = roi(canny_img,h,w)
-    l_lane,r_lane = hough(roi_img,h,w,min_line_len,min_slope,max_slope)
+    l_lane,r_lane,l_slope,r_slope = hough(roi_img,h,w,min_line_len,min_slope,max_slope)
+    #vp = get_vp(l_slope,r_slope)
+    steer_value = l_slope+r_slope#각도를 일반적으로 우리가 90도라고 생각하는데서 재는거 같아
     cv2.line(origin_img, (int(l_lane[0]), int(l_lane[1])), (int(l_lane[2]), int(l_lane[3])), color=[0,0,255], thickness=5)
     cv2.line(origin_img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=5)
-    return origin_img
+    #print(l_slope,r_slope,steer_value)
+    return origin_img, steer_value
 
 def nothing(pos):
     pass
@@ -69,9 +77,9 @@ if __name__ == '__main__':
         min_line_len = cv2.getTrackbarPos(trackbarname='houghMinLine', winname='Lane Detection')
         min_slope = cv2.getTrackbarPos('slopeMinDeg','Lane Detection')
         max_slope = cv2.getTrackbarPos('slopeMaxDeg','Lane Detection')
-        result_img = lane_detection(min_line_len,min_slope,max_slope)
+        result_img, steer_value = lane_detection(min_line_len,min_slope,max_slope)
         cv2.imshow('Lane Detection',result_img)
-
+    
     cv2.imwrite('./hough_img3.jpg',result_img)
     cv2.destroyAllWindows()
     
