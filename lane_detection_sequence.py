@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import serial
+from collections import deque
 
 def grayscale(img):
     return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -46,6 +48,27 @@ def hough(img,h,w,min_line_len,min_slope,max_slope):
     #cv2.line(lane_img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=2)
     return l_lane, r_lane, l_slope, r_slope
 
+def communicate(ser,steer_value):
+    if steer_value == 0:
+        data = deque(['f']+['5']+['`'])
+    elif steer_value < 0:
+        data =deque(['r']+[str(abs(steer_value))]+['`'])
+    else:
+        data = deque(['l']+[str(steer_value)]+['`'])
+    for i in data:
+        interact_ser(i,ser)
+    print(ser.readline().decode())
+    return 
+
+def interact_ser(_str, _ard):
+    _ard.write(_str.encode())
+    if _str[-1] == '`':
+        tmp = ""
+        while tmp == "":
+            tmp = _ard.readline()
+        print(tmp.decode())
+        return tmp
+
 def lane_detection(min_line_len,min_slope,max_slope):
     origin_img = cv2.imread('./left_right.jpg')
     h,w = origin_img.shape[:2]
@@ -63,6 +86,7 @@ def nothing(pos):
     pass
 
 if __name__ == '__main__':
+    ser = serial.Serial('COM4', 9600)
     cv2.namedWindow(winname='Lane Detection')
     cv2.createTrackbar('houghMinLine', 'Lane Detection', 20, 200, nothing)#don't write keyword
     cv2.createTrackbar('slopeMinDeg', 'Lane Detection', 100, 180, nothing)
@@ -72,8 +96,10 @@ if __name__ == '__main__':
         min_slope = cv2.getTrackbarPos('slopeMinDeg','Lane Detection')
         max_slope = cv2.getTrackbarPos('slopeMaxDeg','Lane Detection')
         result_img, steer_value = lane_detection(min_line_len,min_slope,max_slope)
+        communicate(ser,steer_value)
         cv2.imshow('Lane Detection',result_img)
     
+    ser.close()
     cv2.imwrite('./hough_img3.jpg',result_img)
     cv2.destroyAllWindows()
     
