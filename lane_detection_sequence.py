@@ -36,7 +36,7 @@ def separate_line(lines,slope_deg):
     r_slope = int(sum(r_slopes)/len(r_slopes))
     return l_line, r_line, l_slope, r_slope
 
-def hough(img,h,w,min_line_len,min_slope,max_slope):
+def hough(img,min_line_len,min_slope,max_slope):
     lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=30, minLineLength=min_line_len, maxLineGap=30)#return = [[x1,y1,x2,y2],[...],...]
     lines = np.squeeze(lines)#one time ok
     lanes, slopes = restrict_deg(lines,min_slope,max_slope)
@@ -69,38 +69,45 @@ def interact_ser(_str, _ard):
         print(tmp.decode())
         return tmp
 
-def lane_detection(min_line_len,min_slope,max_slope):
-    origin_img = cv2.imread('./left_right.jpg')
-    h,w = origin_img.shape[:2]
-    gray_img = grayscale(origin_img)
+def lane_detection(img,min_line_len,min_slope,max_slope,low,high):
+    h,w = img.shape[:2]
+    gray_img = grayscale(img)
     blur_img = gaussian_blur(gray_img, 5)
-    canny_img = canny(blur_img, 50, 200)
+    canny_img = canny(blur_img, low, high)
     roi_img = roi(canny_img,h,w)
-    l_lane,r_lane,l_slope,r_slope = hough(roi_img,h,w,min_line_len,min_slope,max_slope)
+    l_lane,r_lane,l_slope,r_slope = hough(roi_img,min_line_len,min_slope,max_slope)
     steer_value = l_slope+r_slope#maybe 0 deg is on 12
-    cv2.line(origin_img, (int(l_lane[0]), int(l_lane[1])), (int(l_lane[2]), int(l_lane[3])), color=[0,0,255], thickness=5)
-    cv2.line(origin_img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=5)
-    return origin_img, steer_value
+    cv2.line(img, (int(l_lane[0]), int(l_lane[1])), (int(l_lane[2]), int(l_lane[3])), color=[0,0,255], thickness=5)
+    cv2.line(img, (int(r_lane[0]), int(r_lane[1])), (int(r_lane[2]), int(r_lane[3])), color=[255,0,0], thickness=5)
+    return img, steer_value
 
 def nothing(pos):
     pass
 
 if __name__ == '__main__':
-    ser = serial.Serial('COM4', 9600)
+    capture = cv2.VideoCapture(0)
+    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    ser = serial.Serial('COM5', 9600)
     cv2.namedWindow(winname='Lane Detection')
-    cv2.createTrackbar('houghMinLine', 'Lane Detection', 20, 200, nothing)#don't write keyword
+    cv2.createTrackbar('houghMinLine', 'Lane Detection', 50, 200, nothing)#don't write keyword
     cv2.createTrackbar('slopeMinDeg', 'Lane Detection', 100, 180, nothing)
     cv2.createTrackbar('slopeMaxDeg', 'Lane Detection', 160, 180, nothing)
+    cv2.createTrackbar('threshold1', 'Lane Detection', 50, 1000, nothing)
+    cv2.createTrackbar('threshold2', 'Lane Detection', 200, 1000, nothing)
     while cv2.waitKey(1) != ord('q'):
+        _, frame = capture.read()
         min_line_len = cv2.getTrackbarPos(trackbarname='houghMinLine', winname='Lane Detection')
         min_slope = cv2.getTrackbarPos('slopeMinDeg','Lane Detection')
         max_slope = cv2.getTrackbarPos('slopeMaxDeg','Lane Detection')
-        result_img, steer_value = lane_detection(min_line_len,min_slope,max_slope)
+        low = cv2.getTrackbarPos('threshold1','Lane Detection')
+        high = cv2.getTrackbarPos('threshold2','Lane Detection')
+        result_img, steer_value = lane_detection(frame,min_line_len,min_slope,max_slope,low,high)
         communicate(ser,steer_value)
         cv2.imshow('Lane Detection',result_img)
     
     ser.close()
-    cv2.imwrite('./hough_img3.jpg',result_img)
+    capture.release()
     cv2.destroyAllWindows()
     
 #It will be great that we can select the instant roi region using click when we run the code.

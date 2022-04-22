@@ -206,7 +206,6 @@ def main(ard, port, camera_num):
     cv2.setTrackbarPos('threshold1', 'Lane Detection', low)
     cv2.setTrackbarPos('threshold2', 'Lane Detection', high)
     
-    
     while cv2.waitKey(33) != ord('q'):
         try:
             ret, frame = capture.read()
